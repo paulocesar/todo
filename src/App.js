@@ -3,7 +3,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { ButtonGroup, CssBaseline, Typography } from "@mui/material";
 import { TextField, Button, Grid } from "@mui/material";
 import moment from "moment";
-import { MenuList, Tab } from "@mui/material";
+import { Tab } from "@mui/material";
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 
 const availableThemes = {
@@ -50,14 +50,10 @@ function TaskList(props) {
   if (props.onClickNext) { p -= 1; }
   return (
     <Fragment>
-      <Typography variant="h5">
-        {props.title}
-      </Typography>
-      <MenuList>
         {props.tasks.map((t) =>
           <Grid container spacing={1} sx={{p: 1}} key={t.id.toString()}>
             <Grid item xs={p}>
-              <Typography sx={{ m: 1, display: 'block' }}>
+              <Typography sx={{ mt: 1, mb: 1, display: 'block' }}>
                 {t.description}
               </Typography>
             </Grid>
@@ -77,7 +73,6 @@ function TaskList(props) {
             </Grid>
           </Grid>
         )}
-      </MenuList>
     </Fragment>
   );
 }
@@ -127,6 +122,8 @@ function Todo() {
     setNextList(next);
     setInProgressList(inProgress);
     setDoneList(done);
+
+    setTabId('1');
   }
 
   function moveToNext(id, addToTop = false) {
@@ -163,14 +160,13 @@ function Todo() {
       </Grid>
 
       <TabContext value={tabId}>
-        <TabList onChange={onTabChange}>
+        <TabList onChange={onTabChange} sx={{ m: 1 }}>
           <Tab label="In Progress" value="1" />
           <Tab label="Next" value="2" />
           <Tab label="Done" value="3" />
         </TabList>
         <TabPanel value="1">
           <TaskList
-            title="In Progress"
             tasks={inProgressList}
             onClickBack={(id) => moveToNext(id, true)}
             textBack="✗"
@@ -180,14 +176,12 @@ function Todo() {
         </TabPanel>
         <TabPanel value="2">
           <TaskList
-            title="Next"
             tasks={nextList}
             onClickNext={moveToInProgress}
           />
         </TabPanel>
         <TabPanel value="3">
           <TaskList
-                title="Done"
                 tasks={doneList}
                 onClickBack={(id) => moveToInProgress(id, true)}
               />
