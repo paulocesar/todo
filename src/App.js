@@ -1,10 +1,10 @@
 import { Fragment, useEffect, useState } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { ButtonGroup, CssBaseline, Typography } from "@mui/material";
-import { TextField, Button, Container, Grid } from "@mui/material";
+import { TextField, Button, Grid } from "@mui/material";
 import moment from "moment";
-import { DeleteTwoTone } from "@mui/icons-material";
-import { MenuList, MenuItem, Box } from "@mui/material";
+import { MenuList, Tab } from "@mui/material";
+import { TabContext, TabList, TabPanel } from '@mui/lab';
 
 const availableThemes = {
   default: createTheme(),
@@ -45,7 +45,7 @@ function TaskList(props) {
     props.onClickNext(id);
   }
 
-  let p = 11;
+  let p = 12;
   if (props.onClickBack) { p -= 1; }
   if (props.onClickNext) { p -= 1; }
   return (
@@ -57,7 +57,7 @@ function TaskList(props) {
         {props.tasks.map((t) =>
           <Grid container spacing={1} sx={{p: 1}} key={t.id.toString()}>
             <Grid item xs={p}>
-              <Typography noWrap sx={{ display: 'block' }}>
+              <Typography sx={{ m: 1, display: 'block' }}>
                 {t.description}
               </Typography>
             </Grid>
@@ -66,12 +66,12 @@ function TaskList(props) {
                 {props.onClickBack &&
                   <Button
                     onClick={(ev) => back(ev, t.id)}>
-                    {"<"}
+                    {props.textBack || "<"}
                   </Button>}
                 {props.onClickNext &&
                   <Button
                     onClick={(ev) => next(ev, t.id)}>
-                    {">"}
+                    {props.textNext || ">"}
                     </Button>}
               </ButtonGroup>
             </Grid>
@@ -82,8 +82,8 @@ function TaskList(props) {
   );
 }
 
-export default function App() {
-  const [ currentTheme, setCurrentTheme ] = useState(availableThemes.default);
+function Todo() {
+  const [ tabId, setTabId ] = useState('1');
   const [ description, setDescription ] = useState('');
   const [ inProgressList, setInProgressList ] = useState([ ]);
   const [ nextList, setNextList ] = useState([ ]);
@@ -94,25 +94,34 @@ export default function App() {
       id: (new Date()).getTime(),
       description
     }));
+    setTabId('2');
     setDescription('');
   }
 
-  function moveToDone(id) {
+  function onTabChange(ev, newValue) {
+    setTabId(newValue);
+  }
+
+  function moveToDone(id, addToTop = false) {
     const item = inProgressList.concat(nextList).find((t) => t.id === id);
 
     const next = nextList.filter((t) => t.id !== id);
     const inProgress = inProgressList.filter((t) => t.id !== id);
-    const done = doneList.concat(item);
+    const done = addToTop ?
+      [ item ].concat(doneList) :
+      doneList.concat(item);
 
     setNextList(next);
     setInProgressList(inProgress);
     setDoneList(done);
   }
-  function moveToInProgress(id) {
+  function moveToInProgress(id, addToTop = false) {
     const item = doneList.concat(nextList).find((t) => t.id === id);
 
     const next = nextList.filter((t) => t.id !== id);
-    const inProgress = inProgressList.concat(item);
+    const inProgress = addToTop ?
+      [ item ].concat(inProgressList) :
+      inProgressList.concat(item);
     const done = doneList.filter((t) => t.id !== id);
 
     setNextList(next);
@@ -120,10 +129,10 @@ export default function App() {
     setDoneList(done);
   }
 
-  function moveToNext(id) {
+  function moveToNext(id, addToTop = false) {
     const item = inProgressList.concat(doneList).find((t) => t.id === id);
 
-    const next = nextList.concat(item);
+    const next = addToTop ? [ item ].concat(nextList) : nextList.concat(item);
     const inProgress = inProgressList.filter((t) => t.id !== id);
     const done = doneList.filter((t) => t.id !== id);
 
@@ -133,51 +142,69 @@ export default function App() {
   }
 
   return (
+    <Fragment>
+      <Grid container spacing={1} sx={{p: 1}} >
+        <Grid item xs={6}>
+          <Typography variant="h2">TODO</Typography>
+          <Clock />
+        </Grid>
+      </Grid>
+      <Grid container spacing={1} sx={{p: 1}} >
+        <Grid item xs={12}>
+          <TextField
+            sx={{ width: 1 }}
+            label="Add task"
+            InputLabelProps={{ shrink: true }}
+            value={description}
+            onKeyDown={(e) => e.key === 'Enter' ? createTask() : null}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </Grid>
+      </Grid>
+
+      <TabContext value={tabId}>
+        <TabList onChange={onTabChange}>
+          <Tab label="In Progress" value="1" />
+          <Tab label="Next" value="2" />
+          <Tab label="Done" value="3" />
+        </TabList>
+        <TabPanel value="1">
+          <TaskList
+            title="In Progress"
+            tasks={inProgressList}
+            onClickBack={(id) => moveToNext(id, true)}
+            textBack="✗"
+            onClickNext={moveToDone}
+            textNext="✓"
+          />
+        </TabPanel>
+        <TabPanel value="2">
+          <TaskList
+            title="Next"
+            tasks={nextList}
+            onClickNext={moveToInProgress}
+          />
+        </TabPanel>
+        <TabPanel value="3">
+          <TaskList
+                title="Done"
+                tasks={doneList}
+                onClickBack={(id) => moveToInProgress(id, true)}
+              />
+        </TabPanel>
+      </TabContext>
+    </Fragment>
+  );
+}
+
+export default function App() {
+  const [ currentTheme ] = useState(availableThemes.default);
+
+  return (
     <div className="App">
       <ThemeProvider theme={currentTheme}>
         <CssBaseline />
-          <Grid container spacing={1} sx={{p: 1}} >
-            <Grid item xs={6}>
-              <Typography variant="h2">TODO</Typography>
-              <Clock />
-            </Grid>
-          </Grid>
-          <Grid container spacing={1} sx={{p: 1}} >
-            <Grid item xs={12}>
-              <TextField
-                sx={{ width: 1 }}
-                label="Add task"
-                InputLabelProps={{ shrink: true }}
-                value={description}
-                onKeyDown={(e) => e.key === 'Enter' ? createTask() : null}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </Grid>
-          </Grid>
-          <Grid container spacing={1} sx={{p: 1}} >
-            <Grid item xs={4}>
-              <TaskList
-                title="Next"
-                tasks={nextList}
-                onClickNext={moveToInProgress}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TaskList
-                title="In Progress"
-                tasks={inProgressList}
-                onClickBack={moveToNext}
-                onClickNext={moveToDone}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TaskList
-                title="Done"
-                tasks={doneList}
-                onClickBack={moveToInProgress}
-              />
-            </Grid>
-          </Grid>
+        <Todo />
       </ThemeProvider>
     </div>
   );
