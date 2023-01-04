@@ -58,84 +58,62 @@ function TaskList(props) {
                         </Typography>
                     </Grid>
                     <Grid item xs={12 - p}>
-                        <ButtonGroup sx={{ p: 0 }} variant="outlined" aria-label="outlined button group">
-                            {props.onClickBack &&
+                        <ButtonGroup sx={{ p: 0 }}
+                            variant="outlined"
+                            aria-label="outlined button group">
+                            {props.onClickBack && <Button
+                                onClick={(ev) => back(ev, t.id)}>
+                                {props.textBack || "<"}
+                            </Button>}
+                            {props.onClickNext &&
                                     <Button
-                                    onClick={(ev) => back(ev, t.id)}>
-                                    {props.textBack || "<"}
-                                    </Button>}
-                                    {props.onClickNext &&
-                                            <Button
-                                            onClick={(ev) => next(ev, t.id)}>
-                                            {props.textNext || ">"}
-                                            </Button>}
-                                        </ButtonGroup>
-                                    </Grid>
-                                </Grid>
+                                    onClick={(ev) => next(ev, t.id)}>
+                                    {props.textNext || ">"}
+                            </Button>}
+                        </ButtonGroup>
+                    </Grid>
+                </Grid>
             )}
-                            </Fragment>
+        </Fragment>
     );
 }
 
 function Todo() {
     const [ tabId, setTabId ] = useState('1');
     const [ description, setDescription ] = useState('');
-    const [ inProgressList, setInProgressList ] = useState([ ]);
-    const [ nextList, setNextList ] = useState([ ]);
-    const [ doneList, setDoneList ] = useState([ ]);
+    const [ tasks, setTasks ] = useState([ ]);
+
+    const onTabChange = (ev, newValue) => setTabId(newValue);
+    const byStatus = (s, t) => t.filter((t) => t.status === s);
+
+    function setAndSortTasks(newTasks) {
+        setTasks(byStatus('inProgress', newTasks)
+            .concat(byStatus('next', newTasks))
+            .concat(byStatus('done', newTasks)));
+    }
 
     function createTask() {
-        setNextList(nextList.concat({
+        const newTasks = tasks.concat({
             id: (new Date()).getTime(),
+            status: 'next',
             description
-        }));
+        });
+
+        setAndSortTasks(newTasks);
         setTabId('2');
         setDescription('');
+
     }
 
-    function onTabChange(ev, newValue) {
-        setTabId(newValue);
-    }
+    function moveTo(id, status, addToTop = true) {
+        const rest = tasks.filter((t) => t.id !== id)
+        const item = tasks.find((t) => t.id === id);
+        const newTasks = addToTop ? [ item ].concat(rest) :
+            rest.concat(item);
 
-    function moveToDone(id, addToTop = false) {
-        const item = inProgressList.concat(nextList).find((t) => t.id === id);
+        item.status = status;
 
-        const next = nextList.filter((t) => t.id !== id);
-        const inProgress = inProgressList.filter((t) => t.id !== id);
-        const done = addToTop ?
-            [ item ].concat(doneList) :
-            doneList.concat(item);
-
-        setNextList(next);
-        setInProgressList(inProgress);
-        setDoneList(done);
-    }
-    function moveToInProgress(id, addToTop = false) {
-        const item = doneList.concat(nextList).find((t) => t.id === id);
-
-        const next = nextList.filter((t) => t.id !== id);
-        const inProgress = addToTop ?
-            [ item ].concat(inProgressList) :
-            inProgressList.concat(item);
-        const done = doneList.filter((t) => t.id !== id);
-
-        setNextList(next);
-        setInProgressList(inProgress);
-        setDoneList(done);
-
-        setTabId('1');
-    }
-
-    function moveToNext(id, addToTop = false) {
-        const item = inProgressList.concat(doneList).find((t) => t.id === id);
-
-        const next = addToTop ? [ item ].concat(nextList) : nextList.concat(item);
-        const inProgress = inProgressList.filter((t) => t.id !== id);
-        const done = doneList.filter((t) => t.id !== id);
-
-        setNextList(next);
-        setInProgressList(inProgress);
-        setDoneList(done);
+        setAndSortTasks(newTasks);
     }
 
     return (
@@ -149,45 +127,43 @@ function Todo() {
             <Grid container spacing={1} sx={{p: 1}} >
                 <Grid item xs={12}>
                     <TextField
-                    sx={{ width: 1 }}
-                    label="Add task"
-                    InputLabelProps={{ shrink: true }}
-                    value={description}
-                    onKeyDown={(e) => e.key === 'Enter' ? createTask() : null}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
-                    </Grid>
-                </Grid>
-
-                <TabContext value={tabId}>
-                    <TabList onChange={onTabChange} sx={{ m: 1 }}>
-                        <Tab label="In Progress" value="1" />
-                        <Tab label="Next" value="2" />
-                        <Tab label="Done" value="3" />
-                    </TabList>
-                    <TabPanel value="1">
-                        <TaskList
-                        tasks={inProgressList}
-                        onClickBack={(id) => moveToNext(id, true)}
-                        textBack="✗"
-                        onClickNext={moveToDone}
-                        textNext="✓"
+                        sx={{ width: 1 }}
+                        label="Add task"
+                        InputLabelProps={{ shrink: true }}
+                        value={description}
+                        onKeyDown={(e) =>
+                                e.key === 'Enter' ? createTask() : null}
+                        onChange={(e) => setDescription(e.target.value)}
                     />
-                        </TabPanel>
-                        <TabPanel value="2">
-                            <TaskList
-                            tasks={nextList}
-                            onClickNext={moveToInProgress}
-                        />
-                            </TabPanel>
-                            <TabPanel value="3">
-                                <TaskList
-                                tasks={doneList}
-                                onClickBack={(id) => moveToInProgress(id, true)}
-                            />
-                                </TabPanel>
-                            </TabContext>
-                        </Fragment>
+                </Grid>
+            </Grid>
+
+            <TabContext value={tabId}>
+                <TabList onChange={onTabChange} sx={{ m: 1 }}>
+                    <Tab label="In Progress" value="1" />
+                    <Tab label="Next" value="2" />
+                    <Tab label="Done" value="3" />
+                </TabList>
+                <TabPanel value="1">
+                    <TaskList
+                        tasks={byStatus('inProgress', tasks)}
+                        onClickBack={(id) => moveTo(id, 'next')}
+                        textBack="✗"
+                        onClickNext={(id) => moveTo(id, 'done')}
+                        textNext="✓" />
+                </TabPanel>
+                <TabPanel value="2">
+                    <TaskList
+                        tasks={byStatus('next', tasks)}
+                        onClickNext={(id) => moveTo(id, 'inProgress', false)} />
+                </TabPanel>
+                <TabPanel value="3">
+                    <TaskList
+                        tasks={byStatus('done', tasks)}
+                        onClickBack={(id) => moveTo(id, 'inProgress')} />
+                </TabPanel>
+            </TabContext>
+        </Fragment>
     );
 }
 
